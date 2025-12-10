@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gotham Trader | Wayne Terminal</title>
+    <style>
+        /* --- GOTHAM THEME SETUP --- */
+        :root {
+            --bg-color: #050505;
+            --card-bg: rgba(20, 20, 20, 0.85);
+            --accent: #d4af37; /* Wayne Gold */
+            --accent-glow: rgba(212, 175, 55, 0.4);
+            --text-main: #e0e0e0;
+            --text-muted: #888;
+            --danger: #cf3838;
+            --success: #38cf66;
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background-color: var(--bg-color);
+            background-image: linear-gradient(to bottom, rgba(0,0,0,0.7), var(--bg-color)), url('https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?q=80&w=2574&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text-main);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* --- LAYOUT --- */
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            max-width: 1100px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+
+        /* --- CARDS --- */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover { border-color: #444; }
+
+        h1, h2 { text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; color: var(--accent); }
+        h1 { font-size: 1.5rem; text-align: center; margin-bottom: 30px; text-shadow: 0 0 10px var(--accent-glow); }
+        h2 { font-size: 1.1rem; border-bottom: 1px solid #333; padding-bottom: 10px; }
+
+        /* --- FORMS --- */
+        .input-group { margin-bottom: 15px; }
+        .row { display: flex; gap: 15px; }
+        .col { flex: 1; }
+
+        label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        input {
+            width: 100%;
+            background: #111;
+            border: 1px solid #333;
+            color: var(--text-main);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+
+        input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+
+        /* --- BUTTONS --- */
+        .btn-main {
+            width: 100%;
+            background: linear-gradient(45deg, #b89628, #d4af37);
+            color: #000;
+            font-weight: bold;
+            border: none;
+            padding: 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 20px;
+            font-size: 1rem;
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.2);
+        }
+
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(212, 175, 55, 0.4); }
+        .btn-main:active { transform: translateY(0); }
+
+        /* --- RESULTS SECTION --- */
+        #results-area { opacity: 0; transform: translateY(20px); transition: 0.5s all ease-out; pointer-events: none; }
+        #results-area.visible { opacity: 1; transform: translateY(0); pointer-events: all; }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #222;
+        }
+        .result-row:last-child { border-bottom: none; }
+        .res-label { color: var(--text-muted); font-size: 0.9rem; }
+        .res-value { font-weight: bold; font-family: 'Courier New', monospace; letter-spacing: -0.5px; }
+        .highlight { color: var(--accent); }
+        .profit { color: var(--success); text-shadow: 0 0 5px rgba(56, 207, 102, 0.3); }
+        .loss { color: var(--danger); text-shadow: 0 0 5px rgba(207, 56, 56, 0.3); }
+
+        /* --- AI CHAT TERMINAL --- */
+        .chat-container {
+            margin-top: 30px;
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 8px;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chat-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            color: #555;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .chat-log {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .chat-input-area {
+            display: flex;
+            border-top: 1px solid #333;
+        }
+
+        #chat-input {
+            flex: 1;
+            background: #0a0a0a;
+            border: none;
+            padding: 15px;
+            color: var(--accent);
+            font-family: 'Courier New', monospace;
+        }
+
+        #chat-input:focus { outline: none; }
+        #chat-input::placeholder { color: #444; }
+
+        .msg-bot { color: var(--accent); margin-bottom: 10px; }
+        .msg-user { color: #fff; text-align: right; margin-bottom: 10px; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h1>Wayne Terminal <span style="font-size:0.6em; color:#666">v2.0</span></h1>
+        
+        <h2>Buy Parameters</h2>
+        <div class="row">
+            <div class="col input-group">
+                <label>Buy Price ($)</label>
+                <input type="number" id="buyPrice" placeholder="150.00">
+            </div>
+            <div class="col input-group">
+                <label>Quantity</label>
+                <input type="number" id="buyQty" placeholder="10">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col input-group">
+                <label>Buy Comm ($)</label>
+                <input type="number" id="buyComm" placeholder="0.00">
+            </div>
+            <div class="col input-group">
+                <label>Buy Fee/Share ($)</label>
+                <input type="number" id="buyFee" placeholder="0.00">
+            </div>
+        </div>
+
+        <h2 style="margin-top:20px;">Sell Parameters</h2>
+        <div class="row">
+            <div class="col input-group">
+                <label>Sell Price ($)</label>
+                <input type="number" id="sellPrice" placeholder="160.00">
+            </div>
+            <div class="col input-group">
+                <label>Quantity Sold</label>
+                <input type="number" id="sellQty" placeholder="10">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col input-group">
+                <label>Sell Comm ($)</label>
+                <input type="number" id="sellComm" placeholder="0.00">
+            </div>
+            <div class="col input-group">
+                <label>Sell Fee/Share ($)</label>
+                <input type="number" id="sellFee" placeholder="0.00">
+            </div>
+        </div>
+
+        <h2 style="margin-top:20px;">Target (Optional)</h2>
+        <div class="input-group">
+            <label>Target Profit (Total $)</label>
+            <input type="number" id="targetProfit" placeholder="500.00">
+        </div>
+
+        <button class="btn-main" onclick="calculate()">Initialize Calculation</button>
+    </div>
+
+    <div class="card">
+        <h2>Analysis Results</h2>
+        
+        <div id="results-area">
+            <div class="result-row">
+                <span class="res-label">Total Invested</span>
+                <span class="res-value" id="res-invested">$0.00</span>
+            </div>
+            <div class="result-row">
+                <span class="res-label">Avg Cost / Share</span>
+                <span class="res-value" id="res-avg">$0.00</span>
+            </div>
+            <div class="result-row">
+                <span class="res-label">Break-Even Price</span>
+                <span class="res-value highlight" id="res-break-even">$0.00</span>
+            </div>
+            <hr style="border-color:#333; margin:10px 0;">
+            <div class="result-row">
+                <span class="res-label">Net Proceeds</span>
+                <span class="res-value" id="res-proceeds">$0.00</span>
+            </div>
+            <div class="result-row">
+                <span class="res-label">Realized P/L</span>
+                <span class="res-value" id="res-pl">$0.00</span>
+            </div>
+            <div class="result-row">
+                <span class="res-label">ROI</span>
+                <span class="res-value" id="res-roi">0.00%</span>
+            </div>
+            <div class="result-row" id="target-row" style="display:none">
+                <span class="res-label">Price for Target Profit</span>
+                <span class="res-value highlight" id="res-target-price">$0.00</span>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <div id="chat-overlay" class="chat-overlay">
+                <div>
+                    <p>SYSTEM LOCKED</p>
+                    <p style="font-size:0.8em; margin-top:5px;">Run calculation to enable AI assistance.</p>
+                </div>
+            </div>
+            <div class="chat-log" id="chat-log">
+                <div class="msg-bot">> Alfred AI: System Online. Awaiting trade data...</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Ask: 'Profit?', 'ROI?', 'Break even?'" disabled autocomplete="off">
+            </div>
+        </div>
+        <p style="font-size: 0.7rem; color: #444; margin-top: 10px; text-align: center;">DISCLAIMER: For educational purposes only. Made By Mohammad Shayaan Saleem</p>
+    </div>
+</div>
+
+<script>
+    // Store current calculation data globally for the AI to access
+    let currentData = null;
+
+    function getVal(id) {
+        return parseFloat(document.getElementById(id).value) || 0;
+    }
+
+    function formatMoney(num) {
+        return '$' + num.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function calculate() {
+        // 1. Gather Inputs
+        const bp = getVal('buyPrice');
+        const bq = getVal('buyQty');
+        const bc = getVal('buyComm');
+        const bf = getVal('buyFee');
+
+        const sp = getVal('sellPrice');
+        const sq = getVal('sellQty');
+        const sc = getVal('sellComm');
+        const sf = getVal('sellFee');
+
+        const target = getVal('targetProfit');
+
+        // Validation
+        if(bq <= 0 || bp <= 0) {
+            alert("Please enter valid Buy Price and Quantity.");
+            return;
+        }
+
+        // 2. Calculations
+        // Total cost to buy all shares
+        const totalBuyCost = (bp * bq) + bc + (bf * bq);
+        const avgCostPerShare = totalBuyCost / bq;
+
+        // Break Even (Price per share needed to exit with $0 net P/L assuming selling ALL shares)
+        // Formula: (TotalBuyCost + SellComm + (SellFee*BQ)) / BQ
+        const breakEvenPrice = (totalBuyCost + sc + (sf * bq)) / bq;
+
+        // Sell Side (Realized)
+        const totalSellRevenue = sp * sq;
+        const totalSellCosts = sc + (sf * sq);
+        const netProceeds = totalSellRevenue - totalSellCosts;
+        
+        // P/L based on the specific shares sold
+        const costOfSharesSold = avgCostPerShare * sq;
+        const realizedPL = netProceeds - costOfSharesSold;
+        
+        let roi = 0;
+        if(costOfSharesSold > 0) {
+            roi = (realizedPL / costOfSharesSold) * 100;
+        }
+
+        // Target Profit Logic
+        // Target Price = (TotalBuyCost + TargetProfit + SellComm + (SellFee*BQ)) / BQ
+        // (Assuming we sell ALL shares to hit the target total profit)
+        const targetSellPrice = (totalBuyCost + target + sc + (sf * bq)) / bq;
+
+        // 3. Update UI
+        document.getElementById('res-invested').innerText = formatMoney(totalBuyCost);
+        document.getElementById('res-avg').innerText = formatMoney(avgCostPerShare);
+        document.getElementById('res-break-even').innerText = formatMoney(breakEvenPrice);
+        
+        document.getElementById('res-proceeds').innerText = formatMoney(netProceeds);
+        
+        const plEl = document.getElementById('res-pl');
+        plEl.innerText = formatMoney(realizedPL);
+        plEl.className = realizedPL >= 0 ? 'res-value profit' : 'res-value loss';
+
+        const roiEl = document.getElementById('res-roi');
+        roiEl.innerText = roi.toFixed(2) + '%';
+        roiEl.className = roi >= 0 ? 'res-value profit' : 'res-value loss';
+
+        if(target > 0) {
+            document.getElementById('target-row').style.display = 'flex';
+            document.getElementById('res-target-price').innerText = formatMoney(targetSellPrice);
+        } else {
+            document.getElementById('target-row').style.display = 'none';
+        }
+
+        // Show Results
+        document.getElementById('results-area').classList.add('visible');
+
+        // Unlock AI
+        document.getElementById('chat-overlay').style.display = 'none';
+        const chatInput = document.getElementById('chat-input');
+        chatInput.disabled = false;
+        chatInput.focus();
+
+        // Store data for AI
+        currentData = {
+            invested: formatMoney(totalBuyCost),
+            pl: formatMoney(realizedPL),
+            roi: roi.toFixed(2) + '%',
+            breakEven: formatMoney(breakEvenPrice),
+            targetPrice: formatMoney(targetSellPrice),
+            proceeds: formatMoney(netProceeds)
+        };
+
+        addBotMessage("Calculation complete. Accessing financial records... How may I assist you, Master Wayne?");
+    }
+
+    // --- AI CHAT LOGIC ---
+    const chatInput = document.getElementById('chat-input');
+    const chatLog = document.getElementById('chat-log');
+
+    chatInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            const userText = chatInput.value;
+            if(!userText.trim()) return;
+
+            // Add User Message
+            const userDiv = document.createElement('div');
+            userDiv.className = 'msg-user';
+            userDiv.innerText = userText;
+            chatLog.appendChild(userDiv);
+            chatInput.value = '';
+
+            // AI Response Logic
+            setTimeout(() => {
+                const lower = userText.toLowerCase();
+                let response = "I'm afraid I don't understand that query, sir.";
+
+                if (lower.includes('invest') || lower.includes('cost')) {
+                    response = `Total capital committed to this position is ${currentData.invested}.`;
+                } else if (lower.includes('profit') || lower.includes('made') || lower.includes('lost') || lower.includes('p/l')) {
+                    response = `Your realized P/L is ${currentData.pl}.`;
+                } else if (lower.includes('roi') || lower.includes('return')) {
+                    response = `The Return on Investment stands at ${currentData.roi}.`;
+                } else if (lower.includes('break') || lower.includes('even')) {
+                    response = `To exit without loss, the price must be at least ${currentData.breakEven}.`;
+                } else if (lower.includes('target') || lower.includes('goal')) {
+                    response = `To reach your profit goal, you must sell at ${currentData.targetPrice}.`;
+                } else if (lower.includes('hello') || lower.includes('hi')) {
+                    response = "Greetings.";
+                }
+
+                addBotMessage(response);
+            }, 500);
+            
+            // Scroll to bottom
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+    });
+
+    function addBotMessage(text) {
+        const botDiv = document.createElement('div');
+        botDiv.className = 'msg-bot';
+        botDiv.innerText = `> Alfred AI: ${text}`;
+        chatLog.appendChild(botDiv);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+</script>
+
+</body>
+</html>
